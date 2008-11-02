@@ -1,0 +1,78 @@
+public class GanttChartComponentController {
+	private GanttChartTask[] tasks;
+	
+	public GanttChartTask[] taskList {get; set;}
+	public Date date1 {get; private set;}
+	public Date date2 {get; private set;}
+	public String inputStartDate {
+		get;
+		set {
+			this.date1 = Date.valueOf(value);
+		}
+	}
+	public String inputEndDate {
+		get;
+		set {
+			this.date2 = Date.valueOf(value);
+		}
+	}
+	public Integer tableWidth {
+		get {
+			Date beginDate = this.date1.toStartOfWeek();
+			Date endDate = this.date2.toStartOfWeek().addDays(6);
+			Integer dayCount = (beginDate.daysBetween(endDate) +1);
+			return dayCount*22;
+		}
+	}
+	
+	public String[] weeks {
+		get {
+			Date beginDate = this.date1.toStartOfWeek();
+			Date endDate = this.date2.toStartOfWeek().addDays(6);
+			Integer weekCount = (beginDate.daysBetween(endDate) +1)/ 7;
+			List<String> weeks = new List<String>();
+			Date startDt, endDt;
+			for (Integer i=0;i<weekCount;i++) {
+				startDt = beginDate.addDays(i*7);
+				endDt = startDt.addDays(6);
+				weeks.add(startDt.day() + '/' + startDt.month() + ' to ' + endDt.day() + '/' + endDt.month());
+			}
+			return weeks;
+		}
+	}
+	
+	public GanttChartTask[] formattedTasks {
+		get {
+			GanttChartTask task;
+			Date beginDate = this.date1.toStartOfWeek();
+			for (Integer i=0; i<this.taskList.size(); i++) {
+				task = this.taskList.get(i); 
+				task.top = (this.taskList.size() * -20)+ (3*i+1)+'px';
+				Integer days = task.plannedDays;
+				Integer width = (days * 20) + (days -1) * 2;
+				task.width = width +'px';
+				task.height = +'15px';
+				task.left = (beginDate.daysBetween(task.startDate) * 22) + 'px';
+			}
+			return this.taskList;
+		}
+	}
+	
+	public GanttChartComponentController() {
+	}
+	
+	static testmethod void testController() {
+		Project2__c proj = new Project2__c();
+		insert proj;
+		Opportunity opp = new Opportunity(Name='Test Opp', StageName='Work in Progress', CloseDate=System.today());
+		insert opp;
+		Project_Stage__c stage = new Project_Stage__c(Project__c = proj.Id, Order__c = opp.Id, Planned_Hours__c=9.0, Target_Start__c=System.today(), Target_End__c=System.today().addDays(6));
+		insert stage;
+		GanttChartComponentController con = new GanttChartComponentController();
+		con.date1 = System.today();
+		con.date2 = System.today().addDays(8);
+		con.tasks = new List<GanttChartTask>{new GanttChartTask(stage.Id, stage.Title__c, stage.Target_Start__c, stage.Target_End__c, stage.Lead_Person__r.Name, stage.Lead_Person__r.color__c, stage.Order__r.StageName, stage.Project__r.Name2__c, stage.Project__r.Account__r.Name, stage.Planned_Hours__c)};
+		System.assertEquals(2, con.weeks.size());
+		System.assertEquals(308, con.tableWidth);
+	}
+}
